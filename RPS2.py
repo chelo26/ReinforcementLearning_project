@@ -3,6 +3,16 @@ import sys
 
 # Global Variables
 
+class AIPlayer(object):
+    def __init__(self):
+        self.action = np.random.randint(0, 2)
+        self.dict_actions={"R":0,"P":1,"S":2}
+        
+
+
+
+
+
 class Game(object):
     def __init__(self):
         self.player=1
