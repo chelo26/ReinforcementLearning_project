@@ -59,9 +59,36 @@ class GameTree(object):
 
 # Rules of the game
 class Rules(object):
-    __metaclass__ = ABCMeta
+
 
     def __init__(self,settings):
+        # Only the name and the number of players:
         self.name = settings.name
         self.players_count = settings.players_count
 
+class Node(object):
+
+    def __init__(self, parent, committed, holecards, board, deck, bet_history):
+        self.committed = deepcopy(committed)
+        self.holecards = deepcopy(holecards)
+        self.board = deepcopy(board)
+        self.deck = deepcopy(deck)
+        self.bet_history = deepcopy(bet_history)
+        if parent:
+            self.parent = parent
+            self.parent.add_child(self)
+
+    def add_child(self, child):
+        if self.children is None:
+            self.children = [child]
+        else:
+            self.children.append(child)
+
+
+
+
+# class RoundInfo(object):
+#     __metaclass__ = ABCMeta
+#
+#     def __init__(self, name):
+#         self.name = name

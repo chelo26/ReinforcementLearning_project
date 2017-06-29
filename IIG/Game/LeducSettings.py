@@ -1,19 +1,58 @@
+from CardGamesOptions import Card
+from CardGamesOptions import RoundInfo
 # Globals:
 
 # Name
 name = "Leduc"
 
+
+# CARDS SETTINGS:
 # the number of players in the game
 players_count = 2
 
 # the number of betting rounds in the game
 streets_count = 2
 
+# the number of card suits in the deck
+suit_count = 2
+
+# the number of card ranks in the deck
+rank_count = 3
+# the total number of cards in the deck
+card_count = suit_count * rank_count
+
+# the number of public cards dealt in the game (revealed after the first
+# betting round)
+board_card_count = 1;
+
 # Players:
 players = {}
 players["chance"] = 0
 players["P1"] = 1
 players["P2"] = 2
+
+# Deck:
+deck = [Card(13,1),Card(13,2),Card(12,1),Card(12,2),Card(11,1),Card(11,2)]
+
+# Rounds:
+rounds = [RoundInfo(holecards=1,boardcards=0,betsize=2,maxbets=[2,2]),
+          RoundInfo(holecards=0,boardcards=1,betsize=4,maxbets=[2,2])]
+
+
+# the number of card suits in the deck
+suit_count = 2
+# the number of card ranks in the deck
+rank_count = 3
+# the total number of cards in the deck
+card_count = M.suit_count * M.rank_count;
+# the number of public cards dealt in the game (revealed after the first
+# betting round)
+board_card_count = 1;
+
+
+
+
+
 
 
 # Actions:
