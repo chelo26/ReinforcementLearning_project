@@ -8,6 +8,6 @@ rank_count = 3
 card_count = suit_count * rank_count
 # the number of public cards dealt in the game (revealed after the first
 # betting round)
-board_card_count = 1;
+board_card_count = 1
 # the number of players in the game
 player_count = 2

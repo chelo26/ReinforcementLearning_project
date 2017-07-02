@@ -44,7 +44,7 @@ suit_count = 2
 # the number of card ranks in the deck
 rank_count = 3
 # the total number of cards in the deck
-card_count = M.suit_count * M.rank_count;
+card_count = suit_count * rank_count;
 # the number of public cards dealt in the game (revealed after the first
 # betting round)
 board_card_count = 1;
