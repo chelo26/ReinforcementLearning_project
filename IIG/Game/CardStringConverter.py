@@ -10,14 +10,15 @@ class CardStringConverter(object):
         self.rank_table = ['A', 'K', 'Q', 'J',\
                            'T', '9', '8', '7',\
                            '6', '5', '4', '3', '2']
-        self.card_to_string_table = self.get_card_to_string_dictionary()
-        self.string_to_card_table = self.get_string_to_card_dictionary()
-        
-        # Importing attributes from Settings.Card_settings:
         self.suit_count = card_settings.suit_count
         self.card_count = card_settings.card_count
-        
-        
+
+        self.card_to_string_table = self.get_card_to_string_dictionary()
+        self.string_to_card_table = self.get_string_to_card_dictionary()
+
+        # Importing attributes from Settings.Card_settings:
+
+
     # Gets the suit of a card.
     def card_to_suit(self,card):
         return int(card % self.suit_count)
@@ -31,8 +32,8 @@ class CardStringConverter(object):
     def get_card_to_string_dictionary(self):
         card_to_string_table = {}
         for card in range(1, self.card_count+1):
-            rank_name = rank_table[card_to_rank(card)]
-            suit_name = suit_table[card_to_suit(card)]
+            rank_name = self.rank_table[self.card_to_rank(card)]
+            suit_name = self.suit_table[self.card_to_suit(card)]
             card_to_string_table[card] = rank_name+suit_name
         return card_to_string_table
 
@@ -83,3 +84,5 @@ class CardStringConverter(object):
 
 
 
+card_to_string = CardStringConverter()
+card_to_string.get_card_to_string_dictionary()

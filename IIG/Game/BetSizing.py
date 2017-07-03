@@ -9,26 +9,33 @@ class BetSizing(object):
         self.pot_fractions = pot_fractions
 
     def get_possible_bets(self, node):
-        current_player= node.current_player-1
-        assert (current_player == 0 or current_player == 1),\
+        current_player = node.current_player
+        current_player_index = current_player - 1
+        assert (current_player == 1 or current_player == 2),\
             'Wrong player for bet size computation'
         # indexing !
-        opponent = 2 - node.current_player
-        opponent_bet = node.bets[opponent]
-        assert (node.bets[current_player] <= opponent_bet),\
+        opponent = 3 - node.current_player
+        opponent_index = opponent-1
+        opponent_bet = node.bets[opponent_index]
+        #print("opp bet: ", opponent_bet)
+        #print("node bets: ", node.bets)
+        assert (node.bets[current_player_index] <= opponent_bet),\
             "new bet should be higher than last previous bet "
         max_raise_size = arguments.stack - opponent_bet
+
         #print ("max: ", max_raise_size)
-        min_raise_size = opponent_bet - node.bets[current_player]
+        min_raise_size = opponent_bet - node.bets[current_player_index]
+        #print("min 1 : ", min_raise_size)
         min_raise_size = max(min_raise_size, arguments.ante)
         min_raise_size = min(max_raise_size, min_raise_size)
+        #print ("min: ",min_raise_size)
         if min_raise_size == 0:
             # Tensor
             return np.array([])
         elif min_raise_size == max_raise_size:
             out = np.zeros([1,2])
             out.fill(opponent_bet)
-            out[0,current_player] = opponent_bet + min_raise_size
+            out[0,current_player_index] = opponent_bet + min_raise_size
             return out
         else:
             # All in:
@@ -44,19 +51,15 @@ class BetSizing(object):
                 #print( "raise: ",raise_size)
                 if raise_size >= min_raise_size and raise_size <max_raise_size:
                     used_bets_count += 1
-                    out[used_bets_count-1,current_player-1] = opponent_bet + raise_size
+                    out[used_bets_count-1,current_player_index] = opponent_bet + raise_size
 
 
 
             used_bets_count += 1
             #print("out 1 ", out)
             assert (used_bets_count <= max_possible_bets_count),"bet bigger that max possible bet"
-            out[used_bets_count-1,current_player-1] = opponent_bet + max_raise_size
+            out[used_bets_count-1,current_player_index] = opponent_bet + max_raise_size
             #print("out 2: ",out)
             return out[:used_bets_count]
 
 
-
-# test= BetSizing([1,2])
-# params = Node(1,[200,200],constants.players.P2,1)
-# test.get_possible_bets(params)

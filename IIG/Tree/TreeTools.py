@@ -1,6 +1,6 @@
 from Settings import constants
 from collections import defaultdict
-from Game.BetSizing import BetSizing
+#from Game.BetSizing import BetSizing
 from Settings import arguments
 
 
@@ -24,6 +24,7 @@ class Node(object):
         self.children = None
         self.actions = []
         self.depth = 0
+        self.strategy = []
 
     def fill_additional_attributes(self,node):
         self.pot = min(node.bets)
@@ -53,7 +54,7 @@ class Node(object):
 
 class Params(Node):
     def __init__(self,street, bets,current_player,board,\
-                 limit_to_street,bet_sizing = None):
+                 limit_to_street,bet_sizing = 0):
         super().__init__(street, bets,current_player,board)
         self.limit_to_street = limit_to_street
         self.bet_sizing = bet_sizing
