@@ -10,12 +10,13 @@ require 'Tree.tree_builder'
 require 'Tree.tree_data_generation'
 require 'Tree.tree_visualiser'
 require 'nn'
+require 'Tree.tree_cfr'
 local builder = PokerTreeBuilder()
 
 local params = {}
 
 params.root_node = {}
-params.root_node.board = card_to_string:string_to_board('')
+params.root_node.board = card_to_string:string_to_board('As')
 params.root_node.street = 1
 params.root_node.current_player = constants.players.P1
 params.root_node.bets = arguments.Tensor{200, 200}
@@ -27,17 +28,47 @@ local tree = builder:build_tree(params)
 local game = TreeData(tree)
 
 root = game.tree
----game:get_beting_history(root)
+---print(arguments.bet_sizing)
+test =root.children[2].children[4]
+game:set_beting_history(root)
+game:get_node_data(root)
 
-game:update_histories(root)
+print(game.features_tensor:size())
 
-print(root.children[2].last_bet_history)
+print(game:get_strategy_from_node(test))
 
 
----game:set_last_bet_history_to_tree(node)
+
+
+---104 x 30
 ---game:set_beting_history_to_tree(node)
 
 --[[
+
+
+---- Solver
+local starting_ranges = arguments.Tensor(constants.players_count, game_settings.card_count)
+starting_ranges[1]:copy(card_tools:get_uniform_range(params.root_node.board))
+starting_ranges[2]:copy(card_tools:get_uniform_range(params.root_node.board))
+local tree_cfr = TreeCFR()
+print (tree.strategy)
+print("start solver")
+tree_cfr:run_cfr(tree, starting_ranges)
+--- visualiser:
+local visualiser = TreeVisualiser()
+visualiser:graphviz(tree, "test_start5s")
+print(tree.current_player)
+
+
+
+
+
+
+
+test_node = game.tree.children[2]
+print(test_node.bet_history)
+print(test_node.children[2].bet_history)
+print(test_node.bet_history+test_node.children[2].bet_history)
 
 test_node = game.tree.children[2]
 print(test_node.bet_history)
@@ -56,7 +87,6 @@ print(node_test.last_bet_history)
 
 --- visualiser:
 local visualiser = TreeVisualiser()
-
 visualiser:graphviz(tree, "test_start6")
 print(tree.current_player)
 
