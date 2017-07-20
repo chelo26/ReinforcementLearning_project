@@ -16,7 +16,7 @@ local builder = PokerTreeBuilder()
 local params = {}
 
 params.root_node = {}
-params.root_node.board = card_to_string:string_to_board('As')
+params.root_node.board = card_to_string:string_to_board('')
 params.root_node.street = 1
 params.root_node.current_player = constants.players.P1
 params.root_node.bets = arguments.Tensor{200, 200}
@@ -28,20 +28,12 @@ local tree = builder:build_tree(params)
 local game = TreeData(tree)
 
 root = game.tree
----print(arguments.bet_sizing)
-test =root.children[2].children[4]
 game:set_beting_history(root)
 game:get_node_data(root)
+---local col = game:get_strategy_from_node(root)[1]
+---print(col:reshape(1,4))
+print(game.input_tensor:size())
 
-print(game.features_tensor:size())
-
-print(game:get_strategy_from_node(test))
-
-
-
-
----104 x 30
----game:set_beting_history_to_tree(node)
 
 --[[
 

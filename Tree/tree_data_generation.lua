@@ -10,12 +10,10 @@ local TreeData = torch.class('TreeData')
 function TreeData:__init(tree)
   self.board = torch.Tensor()
   self.row = 1
-  self.features_tensor = torch.Tensor()
-  self.labels_tensor = torch.Tensor()
+  self.input_tensor = torch.Tensor()
+  self.output_tensor = torch.Tensor()
   self.tree = tree
-  self.max_history_size = 3
   self.max_num_actions = 3 + #arguments.bet_sizing
-  self.history_size = self.max_history_size*self.max_num_actions
 
 end
 
@@ -33,60 +31,6 @@ function TreeData:get_training_set(root,num_iter)
 end
 
 
---- Recursive visiting the tree:
-function TreeData:get_node_data2(node)
-
-  ---Verification:
-  ---print ("number child")
-  ---print(#node.children)
-
-  if (not node.terminal and node.current_player ~=0) then
-    ---print("here")
-    ---print(node.current_player)
-    --- Getting the board :
-    local board_bucket = self:get_board_from_node(node)
-    --- Getting the private card:
-    ---local privatecard_bucket = self:get_private_card_from_node(node)
-    --- Getting the history:
-    ---local history_bucket = self:get_history(node)
-    ---local size_private = torch.Tensor()
-    --- Getting the betting history:
-    local history_bucket = self:get_beting_history(node)
-
-    --- Building each matrix:
-    ---board_bucket = board_bucket:view(1,board_bucket:size(2)):expandAs(privatecard_bucket)
-    --history_bucket = history_bucket:view(1,history_bucket:size(2)):repeatTensor(game_settings.card_count,1)
-
-    --- Concatenate columns:
-    ---local features_bucket = board_bucket:cat(privatecard_bucket)
-    local features_bucket = board_bucket:cat(history_bucket)
-
-    --- Get strategy:
-    ---local strategy_bucket = self:get_strategy_from_node(node)
-
-
-    --- Concatenate rows:
-    self.features_tensor = self.features_tensor:cat(features_bucket,1)
-    ----print(strategy_bucket)
-    ----print(self.labels_tensor)
-    ---self.labels_tensor = self.labels_tensor:cat(strategy_bucket,1)
-
-    for i =1,#node.children do
-      local child_node = node.children[i]
-      self:get_node_data(child_node)
-    end
-
-  else
-
-    for i =1,#node.children do
-      local child_node = node.children[i]
-      self:get_node_data(child_node)
-    end
-
-  end
-end
-
-
 -- Recursive visiting the tree:
 function TreeData:get_node_data(node)
 --- Getting data for non terminal and non chance nodes:
@@ -94,14 +38,18 @@ function TreeData:get_node_data(node)
     --- Getting the board :
     local board_bucket = self:get_board_from_node(node)
     --- Getting the private card:
-    local privatecard_bucket = self:get_private_card_from_node(node)
+    ---local privatecard_bucket = self:get_private_card_from_node(node)
     --- Getting the betting history:
     local history_bucket = self:get_beting_history(node)
     --- Concatenating features
-    local features_bucket = board_bucket:cat(history_bucket)
-    self.features_tensor = self.features_tensor:cat(features_bucket,1)
-    ---print(node.current_player)
-    ---print(node.strategy:size())
+
+    local features_bucket,strategy_bucket = self:generate_data(board_bucket,history_bucket,node)
+
+    ---local features_bucket = board_bucket:cat(history_bucket)
+    self.input_tensor = self.input_tensor:cat(features_bucket,1)
+    self.output_tensor =  self.output_tensor:cat(strategy_bucket,1)
+
+
   end
   if node.children ~= nil then
     for i =1,#node.children do
@@ -111,6 +59,9 @@ function TreeData:get_node_data(node)
   end
 
 end
+
+
+
 
 
 
@@ -126,7 +77,7 @@ function TreeData:get_board_from_node(node)
 end
 
 --- Contructs the bucket for the private card info in the node
-function TreeData:get_private_card_from_node(node)
+function TreeData:get_private_card_from_node()
   local data = torch.Tensor(game_settings.card_count,game_settings.card_count):zero()
   ---for i in 1,game_settings.card_count do
   for i = 1,data:size(1) do
@@ -148,15 +99,46 @@ function TreeData:get_strategy_from_node(node)
   local size_strat = strategy:size(2)
 
   local num_zeros_to_add = self.max_num_actions-size_strat
-  print(self.max_num_actions)
-  print(size_strat)
+
   if num_zeros_to_add >0 then
-    print("here")
     module = nn.Padding(1, num_zeros_to_add, 1, 0)
     strategy = module:forward(strategy)
   end
 
+
   return strategy
+end
+
+
+--- Contructs the bucket for the private card info in the node
+function TreeData:generate_data(board_tensor,beting_tensor,node)
+  --- Initialize
+  local input_tensor = torch.Tensor()
+  local output_tensor = torch.Tensor()
+  --- board
+  local board = 0
+  if node.board:nDimension() ~= 0 then
+    board = node.board[1]
+  end
+  ---private
+  local private_card_matrix = self:get_private_card_from_node()
+  --- together
+  local strategy = self:get_strategy_from_node(node)
+  for i=1,game_settings.card_count do
+    -- Input
+    local private_row = private_card_matrix[i]
+    local private_card_tensor = private_row:view(1,private_row:nElement())
+    -- Output
+    local strategy_row = strategy[i]
+    strategy_row = strategy_row:reshape(1,strategy_row:nElement())
+    if i ~=board then
+      local input_row = board_tensor:cat(private_card_tensor):cat(beting_tensor)
+      input_tensor = input_tensor:cat(input_row,1)
+      output_tensor = output_tensor:cat(strategy_row,1)
+
+    end
+  end
+  return input_tensor,output_tensor
 end
 
 
