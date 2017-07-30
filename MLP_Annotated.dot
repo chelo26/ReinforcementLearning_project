@@ -1,0 +1,41 @@
+digraph G {
+	graph [bb="0,0,260,844"];
+	node [label="\N",
+		shape=oval
+	];
+	n1	 [height=1.6303,
+		label="output (1)\nmodule = nn.Linear(10 -> 1)\lreverseMap = {}\lgradOutput = {Tensor[1]}\linput = {Tensor[10]}",
+		pos="130,191",
+		tooltip="[[string \"local function get_network()...\"]]:9_",
+		width=3.4744];
+	n2	 [height=1.3356,
+		label="Node2\ngradOutput = {Tensor[1]}\lreverseMap = {}\linput = {Tensor[1]}",
+		pos="130,48",
+		tooltip="[[C]]:-1_",
+		width=3.2079];
+	n1 -> n2	 [pos="e,130,96.121 130,132.24 130,123.7 130,114.9 130,106.36"];
+	n3	 [height=1.6303,
+		label="h2 (3)\nmodule = nn.Sigmoid\lreverseMap = {}\lgradOutput = {Tensor[10]}\linput = {Tensor[10]}",
+		pos="130,345",
+		tooltip="[[string \"local function get_network()...\"]]:8_",
+		width=3.346];
+	n3 -> n1	 [pos="e,130,249.74 130,286.1 130,277.54 130,268.65 130,259.91"];
+	n4	 [height=1.6303,
+		label="h1 (4)\nmodule = nn.Linear(20 -> 10)\lreverseMap = {}\lgradOutput = {Tensor[10]}\linput = {Tensor[20]}",
+		pos="130,499",
+		tooltip="[[string \"local function get_network()...\"]]:7_",
+		width=3.6126];
+	n4 -> n3	 [pos="e,130,403.74 130,440.1 130,431.54 130,422.65 130,413.91"];
+	n5	 [height=1.6303,
+		label="input (5)\nmodule = nn.Identity\lreverseMap = {}\lgradOutput = {Tensor[20]}\linput = {Tensor[20]}",
+		pos="130,653",
+		tooltip="[[string \"local function get_network()...\"]]:3_",
+		width=3.346];
+	n5 -> n4	 [pos="e,130,557.74 130,594.1 130,585.54 130,576.65 130,567.91"];
+	n6	 [height=1.3356,
+		label="Node6\ngradOutput = {Tensor[20]}\lreverseMap = {}\linput = {Tensor[20]}",
+		pos="130,796",
+		tooltip="[[C]]:-1_",
+		width=3.346];
+	n6 -> n5	 [pos="e,130,711.74 130,747.66 130,739.38 130,730.62 130,721.91"];
+}

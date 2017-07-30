@@ -28,7 +28,7 @@ function Lookahead:build_lookahead(tree)
 end
 
 function Lookahead:print_ranges()
-  return self.ranger_data
+  return self.ranges_data
 end
 --- Re-solves the lookahead using input ranges.
 --
@@ -115,7 +115,7 @@ function Lookahead:_compute_ranges()
   for d=1,self.depth-1 do
     local current_level_ranges = self.ranges_data[d]
     local next_level_ranges = self.ranges_data[d+1]
-
+    
     local prev_layer_terminal_actions_count = self.terminal_actions_count[d-1]
     local prev_layer_actions_count = self.actions_count[d-1]
     local prev_layer_bets_count = self.bets_count[d-1]
@@ -458,5 +458,6 @@ function Lookahead:_set_opponent_starting_range(iteration)
     --note that CFVs indexing is swapped, thus the CFVs for the reconstruction player are for player '1'
     local opponent_range = self.reconstruction_gadget:compute_opponent_range(self.cfvs_data[1][{{}, {}, {}, 1, {}}], iteration)
     self.ranges_data[1][{{}, {}, {}, 2, {}}]:copy(opponent_range)
+
   end
 end

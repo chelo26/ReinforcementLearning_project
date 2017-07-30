@@ -1,0 +1,2 @@
+training error	
+ 6.1436e+02	
