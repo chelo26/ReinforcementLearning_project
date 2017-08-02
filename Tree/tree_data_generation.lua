@@ -378,20 +378,43 @@ end
 function TreeData:generate_new_initial_strategies(node,nn_trainer)
 --- Getting data for non terminal and non chance nodes:
   if (not node.terminal and node.current_player ~=0) then
-    local child_node = node.children[i]
+    ---local child_node = node.children[i]
     local features,masks = self:generate_features_and_masks(node,nn_trainer)
     local _,legal_actions = self:get_strategy_from_node(node)
     local new_strategy = nn_trainer:estimate_strategies(features,masks,nn_trainer.model)
     legal_actions = get_legal_actions_index(legal_actions)
     new_strategy = new_strategy:index(1,legal_actions)
-    print(node.strategy)
+    ---print(node.strategy)
     node.strategy = new_strategy
-    print(new_strategy)
+    ---print(new_strategy)
   end
   if node.children ~= nil then
     for i =1,#node.children do
       local child_node = node.children[i]
       self:generate_new_initial_strategies(child_node,nn_trainer)
+    end
+  end
+end
+
+
+
+function TreeData:warm_start_from_targets(node,nodeWS)
+--- Getting data for non terminal and non chance nodes:
+  if (not node.terminal and node.current_player ~=0) then
+    ---local features,masks = self:generate_features_and_masks(node,nn_trainer)
+    ---local strategy,legal_actions = self:get_strategy_from_node(node)
+    ---local new_strategy = nn_trainer:estimate_strategies(features,masks,nn_trainer.model)
+    ---legal_actions = get_legal_actions_index(legal_actions)
+    ---new_strategy = new_strategy:index(1,legal_actions)
+    ---print(node.strategy)
+    node.strategy = nodeWS.strategy:clone()
+    ---print(new_strategy)
+  end
+  if node.children ~= nil then
+    for i =1,#node.children do
+      local child_node = node.children[i]
+      local child_nodeWS = nodeWS.children[i]
+      self:warm_start_from_targets(child_node,child_nodeWS)
     end
   end
 end

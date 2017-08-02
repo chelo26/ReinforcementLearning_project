@@ -19,6 +19,8 @@ function TreeCFR:__init()
   --for ease of implementation, we use small epsilon rather than zero when working with regrets
   self.regret_epsilon = 1/1000000000
   self._cached_terminal_equities = {}
+  self.strategies_tensor = torch.FloatTensor()
+  self.total_strategies = {}
 end
 
 --- Gets an evaluator for player equities at a terminal node.
@@ -193,10 +195,30 @@ function TreeCFR:run_cfr( root, starting_ranges, iter_count )
 
   assert(starting_ranges)
   local iter_count = iter_count or arguments.cfr_iters
-
   root.ranges_absolute =  starting_ranges
 
   for iter = 1,iter_count do
     self:cfrs_iter_dfs(root, iter)
+
+
+    --- Extract the strategies,insert then in the table
+    --- and initializing the strategies tensor
+    self:extract_strategies(root)
+    table.insert(self.total_strategies,self.strategies_tensor)
+    self.strategies_tensor = torch.FloatTensor()
   end
+end
+
+
+function TreeCFR:extract_strategies(root)
+
+  local children = root.children
+  if #children >0 then
+    self.strategies_tensor = self.strategies_tensor:cat(root.strategy,1)
+    for i = 1,#children do
+      self:extract_strategies(children[i])
+    end
+  end
+
+
 end

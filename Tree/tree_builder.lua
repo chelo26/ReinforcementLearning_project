@@ -96,6 +96,7 @@ end
 -- @local
 function PokerTreeBuilder:_fill_additional_attributes(node)
   node.pot = node.bets:min()
+
 end
 
 --- Creates the children nodes after a player node.
@@ -263,6 +264,8 @@ function PokerTreeBuilder:build_tree(params)
   root.bets = params.root_node.bets:clone()
   root.current_player = params.root_node.current_player
   root.board = params.root_node.board:clone()
+  ---Adding total_pot
+  ---root.total_pot = torch.sum(root.bets)
 
   params.bet_sizing = params.bet_sizing or BetSizing(arguments.Tensor(arguments.bet_sizing))
 

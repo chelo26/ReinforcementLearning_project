@@ -115,7 +115,7 @@ function NeuralNetTrainer:generate_training_and_validation_sets()
     ---print(features_train:size())
     ---print(features_test:size())
     ---self.train_data = train_data
-    ---self.test_data = test_data 
+    ---self.test_data = test_data
     return train_data,test_data
 end
 
