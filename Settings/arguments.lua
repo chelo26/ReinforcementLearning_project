@@ -29,7 +29,7 @@ params.stack = 1200
 --- the number of iterations that DeepStack runs CFR for
 params.cfr_iters = 500
 --- the number of preliminary CFR iterations which DeepStack doesn't factor into the average strategy (included in cfr_iters)
-params.cfr_skip_iters = 0
+params.cfr_skip_iters = 50
 --- how many poker situations are solved simultaneously during data generation
 params.gen_batch_size = 10
 --- how many poker situations are used in each neural net training batch
@@ -52,6 +52,8 @@ params.train_data_count = 100
 params.valid_data_count = 100
 --- learning rate for neural net training
 params.learning_rate = 0.001
+--- default number of iterations
+params.iterations_warm_start = 100
 
 
 assert(params.cfr_iters > params.cfr_skip_iters)

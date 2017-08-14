@@ -11,22 +11,23 @@ local constants = require 'Settings.constants'
 local game_settings = require 'Settings.game_settings'
 local card_tools = require 'Game.card_tools'
 require 'TerminalEquity.terminal_equity'
+require 'math'
 require 'Tree.tree_values'
-
-local TreeCFR = torch.class('TreeCFR')
+local TreeWarmStart = torch.class('TreeWarmStart')
 
 --- Constructor
-function TreeCFR:__init()
+function TreeWarmStart:__init()
   --for ease of implementation, we use small epsilon rather than zero when working with regrets
   self.regret_epsilon = 1/1000000000
   self._cached_terminal_equities = {}
   self.strategies_tensor = torch.FloatTensor()
-  self.total_strategies = {}
-  self.exploitability_table = {}
-  self.tree_values = TreeValues()
-  self.number_of_explo_points = 15
-  self.exploitability_vec = 0
-
+  self.T = 0
+  self.Lambda = 0.0000000001
+  ----self.total_strategies = {}
+  ----self.exploitability_table = {}
+  ----self.tree_values = TreeValues()
+  ----self.number_of_explo_points = 15
+  ----self.exploitability_vec = 0
 end
 
 --- Gets an evaluator for player equities at a terminal node.
@@ -36,7 +37,7 @@ end
 -- @param node the terminal node to evaluate
 -- @return a @{terminal_equity|TerminalEquity} evaluator for the node
 -- @local
-function TreeCFR:_get_terminal_equity(node)
+function TreeWarmStart:_get_terminal_equity(node)
   local cached = self._cached_terminal_equities[node.board]
   if cached == nil then
     cached = TerminalEquity()
@@ -51,7 +52,7 @@ end
 -- @param node the current node in the tree
 -- @param iter the current iteration number
 -- @local
-function TreeCFR:cfrs_iter_dfs( node, iter )
+function TreeWarmStart:warm_start_dfs( node)
 
   assert(node.current_player == constants.players.P1 or node.current_player == constants.players.P2 or node.current_player == constants.players.chance)
 
@@ -74,12 +75,14 @@ function TreeCFR:cfrs_iter_dfs( node, iter )
     else
       terminal_equity:tree_node_call_value(node.ranges_absolute, values)
     end
-    ---print(values)
+
     --multiply by the pot
     values = values * node.pot
     node.cf_values = values:viewAs(node.ranges_absolute)
-    ---print(node.history_actions)
-    ---print(values)
+    ---node.delta_u = torch.max(values,action_dimension)-torch.min(values,action_dimension)
+    ---node.absA = node.actions:size(action_dimension)
+    ---node.regrets2 = node.ranges_absolute*(node.absA*(node.delta_u^2)/self.T)
+
   else
 
     local actions_count = #node.children
@@ -100,8 +103,12 @@ function TreeCFR:cfrs_iter_dfs( node, iter )
 
       --compute the current strategy
       local regrets_sum = node.possitive_regrets:sum(action_dimension)
-      current_strategy = node.possitive_regrets:clone()
-      current_strategy:cdiv(regrets_sum:expandAs(current_strategy))
+      if iter ==1 then
+        current_strategy = node.strategy
+      else
+        current_strategy = node.possitive_regrets:clone()
+        current_strategy:cdiv(regrets_sum:expandAs(current_strategy))
+      end
       ---print(current_strategy)
     end
 
@@ -135,8 +142,9 @@ function TreeCFR:cfrs_iter_dfs( node, iter )
 
       child_node.ranges_absolute[1]:copy(children_ranges_absolute[1][{i}])
       child_node.ranges_absolute[2]:copy(children_ranges_absolute[2][{i}])
-      self:cfrs_iter_dfs(child_node, iter, card_count)
+      self:warm_start_dfs(child_node)
       cf_values_allactions[i] = child_node.cf_values
+
     end
 
     node.cf_values = arguments.Tensor(constants.players_count, game_settings.card_count):fill(0)
@@ -146,9 +154,19 @@ function TreeCFR:cfrs_iter_dfs( node, iter )
 
       node.cf_values[node.current_player] = torch.cmul(strategy_mul_matrix, cf_values_allactions[{{}, node.current_player, {}}]):sum(1)
       node.cf_values[opponent_index] = (cf_values_allactions[{{}, opponent_index, {}}]):sum(1)
+
+      --- Calculating the regrets:
+      local absA = node.actions:size(action_dimension)
+      node.delta_u = torch.max(node.cf_values,action_dimension)-torch.min(node.cf_values,action_dimension)
+      node.delta_u = node.delta_u:repeatTensor(absA,1)
+      local proba_reach_infoset = node.ranges_absolute[node.current_player]:view(1,game_settings.card_count):repeatTensor(absA,1)
+      node.regrets = torch.sqrt(proba_reach_infoset:cmul(absA*(torch.pow(node.delta_u,2)/self.T)))
+      node.regrets = node.regrets/absA
+      node.regrets = node.regrets*self.Lambda
     else
       node.cf_values[1] = (cf_values_allactions[{{}, 1, {}}]):sum(1)
       node.cf_values[2] = (cf_values_allactions[{{}, 2, {}}]):sum(1)
+
     end
 
     if node.current_player ~= constants.players.chance then
@@ -156,10 +174,10 @@ function TreeCFR:cfrs_iter_dfs( node, iter )
       local current_regrets = cf_values_allactions[{{}, {node.current_player}, {}}]:reshape(actions_count, game_settings.card_count):clone()
       current_regrets:csub(node.cf_values[node.current_player]:view(1, game_settings.card_count):expandAs(current_regrets))
 
-      self:update_regrets(node, current_regrets)
+      ---self:update_regrets(node, current_regrets)
 
       --accumulating average strategy
-      self:update_average_strategy(node, current_strategy, iter)
+      ---self:update_average_strategy(node, current_strategy, iter)
     end
   end
 end
@@ -168,19 +186,20 @@ end
 -- @param node the node to update
 -- @param current_regrets the regrets from the current iteration of CFR
 -- @local
-function TreeCFR:update_regrets(node, current_regrets)
+function TreeWarmStart:update_regrets(node, current_regrets)
   --node.regrets:add(current_regrets)
   --local negative_regrets = node.regrets[node.regrets:lt(0)]
   --node.regrets[node.regrets:lt(0)] = negative_regrets
   node.regrets:add(current_regrets)
   node.regrets[torch.le(node.regrets, self.regret_epsilon)] = self.regret_epsilon
+
 end
 
 --- Update a node's average strategy with the current iteration strategy.
 -- @param node the node to update
 -- @param current_strategy the CFR strategy for the current iteration
 -- @param iter the iteration number of the current CFR iteration
-function TreeCFR:update_average_strategy(node, current_strategy, iter)
+function TreeWarmStart:update_average_strategy(node, current_strategy, iter)
   if iter > arguments.cfr_skip_iters then
     node.strategy = node.strategy or arguments.Tensor(actions_count, game_settings.card_count):fill(0)
     node.iter_weight_sum = node.iter_weight_sum or arguments.Tensor(game_settings.card_count):fill(0)
@@ -203,50 +222,26 @@ end
 -- at the root node (default uniform)
 -- @param[opt] iter_count the number of iterations to run CFR for
 -- (default @{arguments.cfr_iters})
-function TreeCFR:run_cfr( root, starting_ranges, iter_count )
+function TreeWarmStart:run_warm_start( root, starting_ranges, number_of_iterations)
 
   assert(starting_ranges)
-  local iter_count = iter_count or arguments.cfr_iters
+  self.T = number_of_iterations or arguments.iterations_warm_start
+
   root.ranges_absolute =  starting_ranges
-  local explo_counter = math.ceil(iter_count/self.number_of_explo_points)
+  self:warm_start_dfs(root, iter)
 
-  for iter = 1,iter_count do
-    self:extract_strategies(root)
-    table.insert(self.total_strategies,self.strategies_tensor)
-    self:cfrs_iter_dfs(root, iter)
-    --- Extract the strategies,insert then in the table
-    --- and initializing the strategies tensor
-    self.strategies_tensor = torch.FloatTensor()
-
-    if iter%explo_counter == 0 or iter == 1 then
-
-      self:calculate_exploitability(root,starting_ranges)
-    end
-   end
-  self.exploitability_vec = torch.FloatTensor(self.exploitability_table)
 end
 
 
-function TreeCFR:extract_strategies(root)
 
+--- Normalize the tree's strategies
+function TreeWarmStart:normalize_strategies(root)
   local children = root.children
   if #children >0 then
-    local extracted_strat = root.strategy:clone()
-
-    self.strategies_tensor = self.strategies_tensor:cat(extracted_strat,1)
-
+    local normalization_term = root.strategy:sum(1):repeatTensor(root.actions:size(1),1)
+    root.strategy:cdiv(normalization_term)
     for i = 1,#children do
-      self:extract_strategies(children[i])
-
+      self:normalize_strategies(children[i])
     end
   end
-end
-
-
-
-
-function TreeCFR:calculate_exploitability(root,starting_ranges)
-  self.tree_values:compute_values(root,starting_ranges)
-  local explo_root = root.exploitability
-  table.insert(self.exploitability_table,explo_root)
 end

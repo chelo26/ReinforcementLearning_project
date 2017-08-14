@@ -176,6 +176,7 @@ function NeuralNetTrainer:train(model,criterion,opt,epochs)
     sgdState = sgdState or {
     learningRate = opt.learningRate or 0.001,
     momentum = opt.momentum or 0,
+    dampening = 0,
     nesterov = opt.nesterov or false,
     learningRateDecay = 5e-7}
 

@@ -224,7 +224,8 @@ function TreeData:set_beting_history(node)
 end
 
 
---- function that updates the histories for each inner node:
+--- function that updates the histories  with the last action
+--- and the vector all previous actions for each inner node:
 --- @param: root of the tree
 --- @return: updated tree
 function TreeData:update_histories(node)
@@ -279,7 +280,8 @@ end
 
 
 
---- function that sets the beting tensor to each node
+--- function that sets the beting tensor as a tensor:
+--- [num_players, num_streets, num_raises, num_actions] to each node
 --- @param: root of the tree
 --- @return: updated tree
 function TreeData:set_beting_tensor_to_node(node)
@@ -292,7 +294,7 @@ function TreeData:set_beting_tensor_to_node(node)
   --- History indexes
   local current_raise = 1
   local last_action = tonumber(node.last_history)
-  local start_action = tonumber(node.last_history)
+  local start_action = tonumber(node.last_history) -- Only to verify we not in the root
   ---print(last_action)
   local data_tensor = torch.Tensor(num_players,num_streets,num_raises,num_actions):fill(0)
 
@@ -303,7 +305,6 @@ function TreeData:set_beting_tensor_to_node(node)
     if last_action>num_actions then
       current_raise = last_action - current_raise
       last_action = 2
-      ---current_raise = current_raise+last_action - num_actions
     else
       last_action = 1
     end
@@ -311,7 +312,6 @@ function TreeData:set_beting_tensor_to_node(node)
     if start_action > 1  then
       data_tensor[{parent.current_player,parent.street,current_raise,last_action}] = 1
     end
-    ---end
   end
   node.bet_history = data_tensor
 end
@@ -398,7 +398,7 @@ end
 
 
 
-function TreeData:warm_start_from_targets(node,nodeWS)
+function TreeData:warm_start_targets_and_regrets(node,nodeWS)
 --- Getting data for non terminal and non chance nodes:
   if (not node.terminal and node.current_player ~=0) then
     ---local features,masks = self:generate_features_and_masks(node,nn_trainer)
@@ -408,13 +408,61 @@ function TreeData:warm_start_from_targets(node,nodeWS)
     ---new_strategy = new_strategy:index(1,legal_actions)
     ---print(node.strategy)
     node.strategy = nodeWS.strategy:clone()
+    ---node.cf_values = nodeWS.cf_values:clone()
+    node.regrets = nodeWS.regrets:clone()---:fill(1e-9)
     ---print(new_strategy)
   end
   if node.children ~= nil then
     for i =1,#node.children do
       local child_node = node.children[i]
       local child_nodeWS = nodeWS.children[i]
-      self:warm_start_from_targets(child_node,child_nodeWS)
+      self:warm_start_targets_and_regrets(child_node,child_nodeWS)
+    end
+  end
+end
+
+function TreeData:warm_start_regrets(node,nodeWS)
+--- Getting data for non terminal and non chance nodes:
+  if (not node.terminal and node.current_player ~=0) then
+    ---local features,masks = self:generate_features_and_masks(node,nn_trainer)
+    ---local strategy,legal_actions = self:get_strategy_from_node(node)
+    ---local new_strategy = nn_trainer:estimate_strategies(features,masks,nn_trainer.model)
+    ---legal_actions = get_legal_actions_index(legal_actions)
+    ---new_strategy = new_strategy:index(1,legal_actions)
+    ---print(node.strategy)
+    ---node.strategy = nodeWS.strategy:clone()
+    ---node.cf_values = nodeWS.cf_values:clone()
+    node.regrets = nodeWS.regrets:clone()---:fill(1e-9)
+    ---print(new_strategy)
+  end
+  if node.children ~= nil then
+    for i =1,#node.children do
+      local child_node = node.children[i]
+      local child_nodeWS = nodeWS.children[i]
+      self:warm_start_regrets(child_node,child_nodeWS)
+    end
+  end
+end
+
+function TreeData:warm_start_targets(node,nodeWS)
+--- Getting data for non terminal and non chance nodes:
+  if (not node.terminal and node.current_player ~=0) then
+    ---local features,masks = self:generate_features_and_masks(node,nn_trainer)
+    ---local strategy,legal_actions = self:get_strategy_from_node(node)
+    ---local new_strategy = nn_trainer:estimate_strategies(features,masks,nn_trainer.model)
+    ---legal_actions = get_legal_actions_index(legal_actions)
+    ---new_strategy = new_strategy:index(1,legal_actions)
+    ---print(node.strategy)
+    node.strategy = nodeWS.strategy:clone()
+    ---node.cf_values = nodeWS.cf_values:clone()
+    ---node.regrets = nodeWS.regrets:clone()---:fill(1e-9)
+    ---print(new_strategy)
+  end
+  if node.children ~= nil then
+    for i =1,#node.children do
+      local child_node = node.children[i]
+      local child_nodeWS = nodeWS.children[i]
+      self:warm_start_targets(child_node,child_nodeWS)
     end
   end
 end

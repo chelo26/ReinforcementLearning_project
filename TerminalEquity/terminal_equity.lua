@@ -168,6 +168,7 @@ end
 function TerminalEquity:tree_node_fold_value( ranges, result, folding_player )
   assert(ranges:dim() == 2)
   assert(result:dim() == 2)
+
   self:fold_value(ranges[1]:view(1,  -1), result[2]:view(1,  -1))
   self:fold_value(ranges[2]:view(1,  -1), result[1]:view(1,  -1))
 
