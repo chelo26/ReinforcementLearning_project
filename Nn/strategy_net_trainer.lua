@@ -15,6 +15,8 @@ function NeuralNetTrainer:__init(game,model)---,criterion,opt)
   self.train_data,self.test_data = self:generate_training_and_validation_sets()
   self.mlp = model.model
   self.model = model
+  self.table_abs_error = {}
+  ---self.lambda = lambda or 0.5
   ---self.model = model
   ---self.criterion = criterion
   ---self.opt = opt
@@ -79,13 +81,14 @@ end
 
 --- Split the data into training and testing data:
 function NeuralNetTrainer:split_data(dataset,percentage_train)
+    ---torch.manualSeed(0)
     local indexes = torch.randperm(dataset:size(1))
     local dataset_new_index = torch.Tensor(dataset:size()):fill(0)
     for i =1,indexes:size(1) do
         dataset_new_index[{{i},{}}]  = dataset[{{indexes[i]},{}}]
     end
 
-    local percentage_train = percentage_train or 0.90
+    local percentage_train = percentage_train or 0.85
     local num_train = math.floor(dataset_new_index:size(1)*percentage_train)
     local data_train = dataset_new_index[{{1,num_train},{}}]:clone()
     local data_test = dataset_new_index[{{num_train+1,-1},{}}]:clone()
@@ -137,6 +140,7 @@ end
 function NeuralNetTrainer:train(model,criterion,opt,epochs)
     --- Defining the parameters and the gradient
     local validate = opt.validate or false
+    self.table_abs_error = {}
 
     --- Data
     local data_train = self.all_data
@@ -166,7 +170,8 @@ function NeuralNetTrainer:train(model,criterion,opt,epochs)
         -- Errors:
         local loss = criterion:forward(predictions, data_train.targets)
         --Backprop:
-        local gradCriterion = criterion:backward(predictions, data_train.targets)
+        local gradCriterion = criterion:backward(predictions, data_train.targets) ---+ params:clone():mul(self.lambda)
+
         model:backward({data_train.features,data_train.masks}, gradCriterion)
 
         return loss,gradParameters
@@ -178,6 +183,7 @@ function NeuralNetTrainer:train(model,criterion,opt,epochs)
     momentum = opt.momentum or 0,
     dampening = 0,
     nesterov = opt.nesterov or false,
+    weightDecay = opt.weightDecay or 0,
     learningRateDecay = 5e-7}
 
     adamState = adamState or {
@@ -186,7 +192,11 @@ function NeuralNetTrainer:train(model,criterion,opt,epochs)
     weightDecay = opt.weightDecay or 0.999}
 
     for i = 1,epochs do
-        optim.sgd(feval, params, sgdState)
+        if opt.adam == true then
+          optim.adam(feval,params,adamState)
+        else
+          optim.sgd(feval, params, sgdState)
+        end
 
         -- Training loss:
         train_loss = criterion:forward(model:forward({data_train.features,data_train.masks}), data_train.targets)
@@ -197,7 +207,15 @@ function NeuralNetTrainer:train(model,criterion,opt,epochs)
           test_loss = criterion:forward(model:forward({data_test.features,data_test.masks}), data_test.targets)
           table.insert(test_loss_tensor,test_loss)
         end
+
+        -- Absolute error:
+        local pred_strat = model:forward({data_train.features,data_train.masks}):clone()
+        local true_strat = data_train.targets:clone()
+        local abs_error =  torch.mean(torch.abs(pred_strat- true_strat))
+        table.insert(self.table_abs_error,abs_error)
+
     end
+    ---collectgarbage()
     return torch.Tensor(training_loss_tensor),torch.Tensor(test_loss_tensor)
 end
 

@@ -6,8 +6,10 @@ local arguments = require 'Settings.arguments'
 local StrategyLoss = torch.class('StrategyLoss')
 
 --- Constructor
-function StrategyLoss:__init()
+function StrategyLoss:__init()  ---model,lambda
   self.criterion = nn.SmoothL1Criterion()
+  ---self.parameters,_ = model:getParameters()
+  ---self.lambda = lambda
 end
 
 --- Computes the loss over a batch of neural net outputs and targets.
@@ -28,7 +30,7 @@ function StrategyLoss:forward(outputs, targets)
   new_outputs:log()
   local new_targets = targets:clone()
   local new_loss = new_targets:cmul(new_outputs)
-  loss = -torch.sum(new_loss)/number_of_points
+  loss = -torch.sum(new_loss)/number_of_points ---+ self.lambda*torch.norm(self.parameters,2)^2/2
 
   return loss
 end
@@ -57,6 +59,5 @@ function StrategyLoss:backward(outputs, targets)
   local dloss_doutput = targets:clone()
   dloss_doutput:cdiv(new_outputs)
 
-
-  return -dloss_doutput/number_of_points
+  return -dloss_doutput/number_of_points ---+ self.parameters:clone():mul(self.lambda)
 end

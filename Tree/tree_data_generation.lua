@@ -466,3 +466,71 @@ function TreeData:warm_start_targets(node,nodeWS)
     end
   end
 end
+
+
+
+
+-----
+function TreeData:initialize_strategy_without_player(node,minus_player,parent_strategy)
+  --- Getting data for non terminal and non chance nodes:
+  local current_player = node.current_player
+  local current_strategy = node.strategy
+  node.strategy_without_player = node.strategy_without_player or {}
+
+
+  if node.strategy ~= nil and node.children ~=nil then
+    local actions_count = node.strategy:size(1)
+
+    local parent_strategy = parent_strategy or torch.FloatTensor(actions_count,game_settings.card_count):fill(1)
+
+    if current_player == minus_player then
+      node.strategy_without_player[minus_player] = parent_strategy:clone()
+    else
+      if node.history ~=0 then
+        local child_strategy = parent_strategy[node.history]:view(1,-1):repeatTensor(actions_count,1)
+        node.strategy_without_player[minus_player]= torch.cmul(child_strategy,parent_strategy)
+      else
+        node.strategy_without_player[minus_player] = parent_strategy
+      end
+    end
+
+      for i =1,#node.children do
+        local child_node = node.children[i]
+        local parent_strategy = node.strategy:clone()
+        self:initialize_strategy_without_player(child_node,minus_player,parent_strategy)
+      end
+
+  end
+
+end
+--[[if node.children ~= nil then
+  for i =1,#node.children do
+    local child_node = node.children[i]
+    local child_nodeWS = nodeWS.children[i]
+    local current_pi =
+    self:warm_start_regrets_with_aaai(child_node,child_nodeWS)
+    node.regrets = 99
+  end
+
+
+end
+
+  if (not node.terminal and node.current_player ~=0) then
+    ---local features,masks = self:generate_features_and_masks(node,nn_trainer)
+    ---local strategy,legal_actions = self:get_strategy_from_node(node)
+    ---local new_strategy = nn_trainer:estimate_strategies(features,masks,nn_trainer.model)
+    ---legal_actions = get_legal_actions_index(legal_actions)
+    ---new_strategy = new_strategy:index(1,legal_actions)
+    ---print(node.strategy)
+    ---node.strategy = nodeWS.strategy:clone()
+    ---node.cf_values = nodeWS.cf_values:clone()
+    node.regrets = nodeWS.regrets:clone():fill(1e-9)
+    ---print(new_strategy)
+  end
+  if node.children ~= nil then
+    for i =1,#node.children do
+      local child_node = node.children[i]
+      local child_nodeWS = nodeWS.children[i]
+      self:warm_start_regrets_with_aaai(child_node,child_nodeWS)
+    end
+  end--]]

@@ -187,7 +187,9 @@ function TreeCFR:update_average_strategy(node, current_strategy, iter)
 --- CHANGE HERE
 
   if iter >1 then
-    if iter > arguments.cfr_skip_iters then
+    local iters_skiped = self.cfr_skip or arguments.cfr_skip_iters
+    if iter > iters_skiped then
+    ---if iter > arguments.cfr_skip_iters then
       node.strategy = node.strategy or arguments.Tensor(actions_count, game_settings.card_count):fill(0)
       node.iter_weight_sum = node.iter_weight_sum or arguments.Tensor(game_settings.card_count):fill(0)
       local iter_weight_contribution = node.ranges_absolute[node.current_player]:clone()

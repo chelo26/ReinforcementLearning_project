@@ -181,7 +181,8 @@ end
 -- @param current_strategy the CFR strategy for the current iteration
 -- @param iter the iteration number of the current CFR iteration
 function TreeCFR:update_average_strategy(node, current_strategy, iter)
-  if iter > arguments.cfr_skip_iters then
+  local iters_skiped = self.cfr_skip or arguments.cfr_skip_iters
+  if iter > iters_skiped then
     node.strategy = node.strategy or arguments.Tensor(actions_count, game_settings.card_count):fill(0)
     node.iter_weight_sum = node.iter_weight_sum or arguments.Tensor(game_settings.card_count):fill(0)
     local iter_weight_contribution = node.ranges_absolute[node.current_player]:clone()

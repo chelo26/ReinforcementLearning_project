@@ -42,7 +42,7 @@ starting_ranges[1]:copy(card_tools:get_uniform_range(params.root_node.board))
 starting_ranges[2]:copy(card_tools:get_uniform_range(params.root_node.board))
 local tree_cfr = TreeCFR()
 print("Solver")
-tree_cfr:run_cfr(tree, starting_ranges)
+tree_cfr:run_cfr(tree, starting_ranges,200)
 print("geting training set")
 game:get_training_set(tree,1)
 

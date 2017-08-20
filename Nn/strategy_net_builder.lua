@@ -12,6 +12,10 @@ function StrategyNN:create_model()
   layer1:add(nn.Linear(30, 64):init('weight', nninit.xavier))
   layer1:add(nn.Identity)
 
+  layer12 = nn.ParallelTable()
+  layer12:add(nn.Dropout())
+  layer12:add(nn.Identity)
+
   layer2 = nn.ParallelTable()
   layer2:add(nn.PReLU())
   layer2:add(nn.Identity)
@@ -41,6 +45,7 @@ function StrategyNN:create_model()
 
   mlp = nn.Sequential()
   mlp:add(layer1)
+  ---mlp:add(layer12)
   mlp:add(layer2)
   mlp:add(layer21)
   mlp:add(layer22)

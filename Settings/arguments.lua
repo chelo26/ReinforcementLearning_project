@@ -27,9 +27,9 @@ params.ante = 100
 --- the size of each player's stack, in chips
 params.stack = 1200
 --- the number of iterations that DeepStack runs CFR for
-params.cfr_iters = 500
+params.cfr_iters = 1000
 --- the number of preliminary CFR iterations which DeepStack doesn't factor into the average strategy (included in cfr_iters)
-params.cfr_skip_iters = 50
+params.cfr_skip_iters = 500
 --- how many poker situations are solved simultaneously during data generation
 params.gen_batch_size = 10
 --- how many poker situations are used in each neural net training batch
