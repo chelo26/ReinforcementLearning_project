@@ -13,6 +13,7 @@ local card_tools = require 'Game.card_tools'
 require 'TerminalEquity.terminal_equity'
 require 'math'
 require 'Tree.tree_values'
+require 'Adversarials.exploitabilityVS'
 local TreeCFR = torch.class('TreeCFR2')
 
 --- Constructor
@@ -24,8 +25,9 @@ function TreeCFR:__init()
   self.total_strategies = {}
   self.exploitability_table = {}
   self.tree_values = TreeValues()
-  self.number_of_explo_points = 15
+  self.number_of_explo_points = 5
   self.exploitability_vec = 0
+  self.cfr_skip = 0
 end
 
 --- Gets an evaluator for player equities at a terminal node.
@@ -185,8 +187,8 @@ end
 -- @param iter the iteration number of the current CFR iteration
 function TreeCFR:update_average_strategy(node, current_strategy, iter)
 --- CHANGE HERE
-
-  if iter >1 then
+  ---if iter >1 then
+  if iter >0 then
     local iters_skiped = self.cfr_skip or arguments.cfr_skip_iters
     if iter > iters_skiped then
     ---if iter > arguments.cfr_skip_iters then
@@ -272,4 +274,89 @@ function TreeCFR:calculate_exploitability(root,starting_ranges)
   self.tree_values:compute_values(root,starting_ranges)
   local explo_root = root.exploitability
   table.insert(self.exploitability_table,explo_root)
+end
+
+
+---- EVALULATION
+function TreeCFR:run_match_cfr(root, starting_ranges,second_tree ,iter_count, number_tests,number_games ,cfr_skip)
+
+  assert(starting_ranges)
+  local iter_count = iter_count or arguments.cfr_iters
+  local cfr_skip = cfr_skip or self.cfr_skip
+  root.ranges_absolute =  starting_ranges
+  local intervals = math.ceil(iter_count/self.number_of_explo_points)
+  ---local match_interval = torch.range(1,iter_count,intervals)
+  ---local win_rate_tensor = torch.FloatTensor(1,match_interval:size(1)):fill(0)
+  ---local pot_gain_tensor = torch.FloatTensor(1,match_interval:size(1)):fill(0)
+  local win_rate_table = {}
+  local pot_gain_table = {}
+  ---print('match',match_interval)
+  local num_element = 1
+  for iter = 1,iter_count do
+
+    if iter > cfr_skip then
+      if iter%intervals == 0 or iter ==1 then
+        ---local pot_gain,win_rate = get_returns(second_tree,root,number_games)
+        local pot_gain_tensor,win_rate_tensor = self:get_tensor_returns(second_tree,root,number_tests,number_games)
+        local avg_pot_gain = pot_gain_tensor:mean()
+        local avg_win_rate = win_rate_tensor:mean()
+        table.insert(pot_gain_table, avg_pot_gain)
+        table.insert(win_rate_table, avg_win_rate)
+      end
+    end
+
+    self:cfrs_iter_dfs(root, iter)
+    ---if iter == match_interval[num_element] then
+      ----print("iter, ",iter)
+      ---print("match_interval, ",match_interval[num_element])
+      ---print("element, ",num_element)
+
+      ---num_element = num_element + 1
+    ---end
+    ---print("itersss ", iter)
+    end
+
+  return torch.FloatTensor(pot_gain_table),torch.FloatTensor(win_rate_table)
+end
+
+
+function TreeCFR:run_clean_cfr( root, starting_ranges, iter_count )
+
+  assert(starting_ranges)
+  local iter_count = iter_count or arguments.cfr_iters
+  root.ranges_absolute =  starting_ranges
+
+  for iter = 1,iter_count do
+
+    self:cfrs_iter_dfs(root, iter)
+    --- Extract the strategies,insert then in the table
+    --- and initializing the strategies tensor
+    ---self:normalize_strategies(root)
+  end
+end
+
+
+
+function TreeCFR:get_returns(tree1,tree2,num_iter)
+    local num_iter = num_iter or 100
+    local evaluator = StrategyEvaluator(tree1,tree2)
+    evaluator:play_all_combinations_n_times(tree1,tree2,num_iter)
+    local win_rate = evaluator.A2_winning_rate
+    local avg_gain= evaluator.A2_avg_pot_won
+    return avg_gain,win_rate
+end
+
+function TreeCFR:get_tensor_returns(tree1,tree2,number_of_tests,num_iter)
+    local num_iter = num_iter or 100
+    local number_of_tests = number_of_tests or 10
+    local avg_gain_tensor = torch.FloatTensor(1,number_of_tests)
+    local win_rate_tensor = torch.FloatTensor(1,number_of_tests)
+
+    for i =1,number_of_tests do
+        local avg_gain,win_rate = self:get_returns(tree1,tree2,num_iter)
+        avg_gain_tensor[{1,i}]= avg_gain
+        win_rate_tensor[{1,i}]= win_rate
+
+    end
+    return avg_gain_tensor,win_rate_tensor
 end
