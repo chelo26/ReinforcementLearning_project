@@ -25,9 +25,9 @@ function TreeCFR:__init()
   self.total_strategies = {}
   self.exploitability_table = {}
   self.tree_values = TreeValues()
-  self.number_of_explo_points = 5
+  self.number_of_explo_points = 15
   self.exploitability_vec = 0
-  self.cfr_skip = 0
+  self.cfr_skip = 1
 end
 
 --- Gets an evaluator for player equities at a terminal node.
@@ -188,7 +188,7 @@ end
 function TreeCFR:update_average_strategy(node, current_strategy, iter)
 --- CHANGE HERE
   ---if iter >1 then
-  if iter >0 then
+  if iter >=0 then
     local iters_skiped = self.cfr_skip or arguments.cfr_skip_iters
     if iter > iters_skiped then
     ---if iter > arguments.cfr_skip_iters then
@@ -226,6 +226,7 @@ function TreeCFR:run_cfr( root, starting_ranges, iter_count )
   local explo_counter = math.ceil(iter_count/self.number_of_explo_points)
   for iter = 1,iter_count do
     self:extract_strategies(root)
+
     table.insert(self.total_strategies,self.strategies_tensor)
     self:cfrs_iter_dfs(root, iter)
     --- Extract the strategies,insert then in the table
@@ -271,6 +272,8 @@ end
 
 --- Function to add exploitability to the table
 function TreeCFR:calculate_exploitability(root,starting_ranges)
+  ---print(root.strategy)
+  ---print(starting_ranges)
   self.tree_values:compute_values(root,starting_ranges)
   local explo_root = root.exploitability
   table.insert(self.exploitability_table,explo_root)
@@ -287,7 +290,7 @@ function TreeCFR:run_match_cfr(root, starting_ranges,second_tree ,iter_count, nu
   local intervals = math.ceil(iter_count/self.number_of_explo_points)
   ---local match_interval = torch.range(1,iter_count,intervals)
   ---local win_rate_tensor = torch.FloatTensor(1,match_interval:size(1)):fill(0)
-  ---local pot_gain_tensor = torch.FloatTensor(1,match_interval:size(1)):fill(0)
+  ---local pot_gain_tensor = torch.FloatiTensor(1,match_interval:size(1)):fill(0)
   local win_rate_table = {}
   local pot_gain_table = {}
   ---print('match',match_interval)
