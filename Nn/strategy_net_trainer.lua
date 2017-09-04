@@ -1,9 +1,12 @@
+-- Trains the Neural Network spliting in training and test set.
+-- It uses gradient descent
+-- @classmod NNTrainer
+
+
 require 'nn'
 require 'math'
 require 'optim'
 nninit = require 'nninit'
-
-
 local NeuralNetTrainer = torch.class('NNTrainer')
 
 function NeuralNetTrainer:__init(game,model)---,criterion,opt)
